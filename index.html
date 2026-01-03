@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/vibe dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #222;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: #fff;
+    }
+
+    .handle-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .handle-input input {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      border-radius: 4px;
+      width: 120px;
+    }
+
+    .handle-input input:focus {
+      outline: none;
+      border-color: #6B8FFF;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline {
+      background: #666;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    section {
+      margin-bottom: 30px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+    }
+
+    .badge {
+      background: #6B8FFF;
+      color: #000;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .presence-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .presence-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #222;
+    }
+
+    .presence-item .handle {
+      color: #6B8FFF;
+      font-weight: 500;
+    }
+
+    .presence-item .building {
+      color: #888;
+      font-size: 0.8rem;
+    }
+
+    .presence-item .mood {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      background: #222;
+      border-radius: 3px;
+      color: #888;
+    }
+
+    .thread-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .thread-item {
+      background: #1a1a1a;
+      border: 1px solid #222;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .thread-item:hover {
+      border-color: #333;
+    }
+
+    .thread-item.expanded {
+      border-color: #6B8FFF;
+    }
+
+    .thread-item.unread {
+      border-left: 3px solid #6B8FFF;
+    }
+
+    .thread-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+    }
+
+    .thread-with {
+      color: #6B8FFF;
+      font-weight: 500;
+    }
+
+    .thread-preview {
+      color: #888;
+      font-size: 0.85rem;
+      max-width: 400px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .thread-time {
+      color: #555;
+      font-size: 0.75rem;
+    }
+
+    .thread-content {
+      display: none;
+      padding: 0 16px 16px;
+      border-top: 1px solid #222;
+    }
+
+    .thread-item.expanded .thread-content {
+      display: block;
+    }
+
+    .messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding-top: 12px;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #111;
+      border-radius: 6px;
+    }
+
+    .message.sent {
+      background: #1a2a4a;
+      margin-left: 40px;
+    }
+
+    .message.received {
+      background: #1a1a1a;
+      margin-right: 40px;
+    }
+
+    .message-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .message-from {
+      color: #6B8FFF;
+      font-size: 0.8rem;
+    }
+
+    .message-time {
+      color: #555;
+      font-size: 0.7rem;
+    }
+
+    .message-text {
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+
+    .reply-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .reply-form input {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      border-radius: 4px;
+    }
+
+    .reply-form input:focus {
+      outline: none;
+      border-color: #6B8FFF;
+    }
+
+    .reply-form button {
+      background: #6B8FFF;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .reply-form button:hover {
+      background: #8BA8FF;
+    }
+
+    .reply-form button:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+
+    .empty-state {
+      color: #555;
+      text-align: center;
+      padding: 40px;
+      font-size: 0.9rem;
+    }
+
+    .refresh-indicator {
+      font-size: 0.7rem;
+      color: #444;
+    }
+
+    .error {
+      color: #ff6b6b;
+      padding: 12px;
+      background: #2a1a1a;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .compose-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .compose-form input[type="text"]:first-child {
+      width: 120px;
+      flex-shrink: 0;
+    }
+
+    .compose-form input[type="text"]:nth-child(2) {
+      flex: 1;
+    }
+
+    .compose-form input {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      border-radius: 4px;
+    }
+
+    .compose-form input:focus {
+      outline: none;
+      border-color: #6B8FFF;
+    }
+
+    .compose-form button {
+      background: #6B8FFF;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .compose-form button:hover {
+      background: #8BA8FF;
+    }
+
+    .compose-form button:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+
+    .terminal-nudge {
+      text-align: center;
+      padding: 30px 0 10px;
+      color: #444;
+      font-size: 0.8rem;
+    }
+
+    .terminal-nudge code {
+      background: #1a1a1a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #6B8FFF;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 12px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .presence-list {
+        flex-direction: column;
+      }
+
+      .thread-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .thread-preview {
+        max-width: 100%;
+      }
+
+      .message.sent {
+        margin-left: 20px;
+      }
+
+      .message.received {
+        margin-right: 20px;
+      }
+
+      .compose-form {
+        flex-wrap: wrap;
+      }
+
+      .compose-form input[type="text"]:first-child {
+        width: 100%;
+      }
+
+      .compose-form input[type="text"]:nth-child(2) {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>/vibe <span style="font-size: 0.6em; color: #444; font-weight: 300;">web companion</span></h1>
+      <div class="handle-input">
+        <div class="status-dot" id="connectionStatus"></div>
+        <input type="text" id="handleInput" placeholder="@handle" />
+      </div>
+    </header>
+
+    <section id="presenceSection">
+      <div class="section-header">
+        <span class="section-title">Online now</span>
+        <span class="refresh-indicator" id="lastRefresh"></span>
+      </div>
+      <div class="presence-list" id="presenceList">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+
+    <section id="composeSection">
+      <div class="section-header">
+        <span class="section-title">New message</span>
+      </div>
+      <form class="compose-form" id="composeForm">
+        <input type="text" id="composeTo" placeholder="@handle" />
+        <input type="text" id="composeText" placeholder="Message..." />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <section id="inboxSection">
+      <div class="section-header">
+        <span class="section-title">Messages</span>
+        <span class="badge" id="unreadBadge" style="display: none;">0</span>
+      </div>
+      <div class="thread-list" id="threadList">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+
+    <footer class="terminal-nudge">
+      <code>claude</code> then <code>/vibe</code> for the full experience
+    </footer>
+  </div>
+
+  <script>
+    const API_BASE = 'https://slashvibe.dev';
+    let myHandle = localStorage.getItem('vibe_handle') || 'seth';
+    let authToken = localStorage.getItem('vibe_token') || null;
+    let sessionId = localStorage.getItem('vibe_session') || null;
+    let expandedThread = null;
+    let allMessages = [];
+    let threads = {};
+
+    // Initialize
+    document.getElementById('handleInput').value = myHandle;
+    document.getElementById('handleInput').addEventListener('change', async (e) => {
+      myHandle = e.target.value.replace('@', '').toLowerCase();
+      localStorage.setItem('vibe_handle', myHandle);
+      // Re-register with new handle
+      authToken = null;
+      sessionId = null;
+      localStorage.removeItem('vibe_token');
+      localStorage.removeItem('vibe_session');
+      await ensureAuth();
+      refresh();
+    });
+
+    // Generate session ID
+    function generateSessionId() {
+      return 'web_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+    }
+
+    // Ensure we have auth token
+    async function ensureAuth() {
+      if (authToken) return true;
+
+      try {
+        sessionId = generateSessionId();
+        const res = await fetch(`${API_BASE}/api/presence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'register',
+            username: myHandle,
+            sessionId: sessionId,
+            workingOn: 'Using /vibe dashboard'
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          authToken = data.token;
+          sessionId = data.sessionId || sessionId;
+          localStorage.setItem('vibe_token', authToken);
+          localStorage.setItem('vibe_session', sessionId);
+          console.log('Registered with /vibe API');
+          return true;
+        }
+      } catch (err) {
+        console.error('Registration failed:', err);
+      }
+      return false;
+    }
+
+    // Auth headers helper
+    function authHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      return headers;
+    }
+
+    // Format relative time
+    function timeAgo(timestamp) {
+      if (!timestamp) return '';
+      const now = Date.now();
+      const diff = now - new Date(timestamp).getTime();
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (mins < 1) return 'now';
+      if (mins < 60) return `${mins}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${days}d ago`;
+    }
+
+    // Group messages into threads
+    function groupIntoThreads(messages) {
+      const threadMap = {};
+
+      messages.forEach(msg => {
+        // Thread key is the other person
+        const other = msg.from === myHandle ? msg.to : msg.from;
+        if (!threadMap[other]) {
+          threadMap[other] = {
+            with: other,
+            messages: [],
+            lastMessage: '',
+            lastAt: null,
+            unread: false
+          };
+        }
+        threadMap[other].messages.push(msg);
+        // Track latest message
+        const msgTime = new Date(msg.createdAt).getTime();
+        if (!threadMap[other].lastAt || msgTime > new Date(threadMap[other].lastAt).getTime()) {
+          threadMap[other].lastAt = msg.createdAt;
+          threadMap[other].lastMessage = msg.text;
+        }
+        // Track unread
+        if (!msg.read && msg.to === myHandle) {
+          threadMap[other].unread = true;
+        }
+      });
+
+      // Sort each thread's messages chronologically
+      Object.values(threadMap).forEach(thread => {
+        thread.messages.sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      });
+
+      return threadMap;
+    }
+
+    // Fetch presence
+    async function fetchPresence() {
+      try {
+        const res = await fetch(`${API_BASE}/api/presence`);
+        const data = await res.json();
+        renderPresence(data.active || data.online || []);
+        updateConnectionStatus(true);
+      } catch (err) {
+        console.error('Presence fetch failed:', err);
+        updateConnectionStatus(false);
+      }
+    }
+
+    // Fetch inbox (all messages)
+    async function fetchInbox() {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages?user=${myHandle}`);
+        const data = await res.json();
+        allMessages = data.inbox || [];
+        threads = groupIntoThreads(allMessages);
+        renderThreadList(threads);
+      } catch (err) {
+        console.error('Inbox fetch failed:', err);
+        document.getElementById('threadList').innerHTML =
+          '<div class="error">Failed to load inbox</div>';
+      }
+    }
+
+    // Send DM
+    async function sendDM(to, text) {
+      // Ensure we have auth
+      if (!authToken) {
+        const registered = await ensureAuth();
+        if (!registered) {
+          console.error('Not authenticated');
+          return false;
+        }
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/messages`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ from: myHandle, to, text })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.error('Send failed:', data.error);
+          // If auth error, clear token and retry once
+          if (data.error?.includes('Authentication') || data.error?.includes('token')) {
+            authToken = null;
+            localStorage.removeItem('vibe_token');
+            const registered = await ensureAuth();
+            if (registered) {
+              return sendDM(to, text);  // Retry
+            }
+          }
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('Send DM failed:', err);
+        return false;
+      }
+    }
+
+    // Render presence
+    function renderPresence(online) {
+      const container = document.getElementById('presenceList');
+
+      if (!online.length) {
+        container.innerHTML = '<div class="empty-state">No one online</div>';
+        return;
+      }
+
+      container.innerHTML = online.map(user => `
+        <div class="presence-item">
+          <div class="status-dot"></div>
+          <span class="handle">@${user.username || user.handle}</span>
+          ${user.workingOn ? `<span class="building">${user.workingOn}</span>` : ''}
+          ${user.mood ? `<span class="mood">${user.mood}</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Render thread list
+    function renderThreadList(threadMap) {
+      const container = document.getElementById('threadList');
+      const badge = document.getElementById('unreadBadge');
+
+      const threadList = Object.values(threadMap).sort((a, b) =>
+        new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+      );
+
+      if (!threadList.length) {
+        container.innerHTML = '<div class="empty-state">No messages yet</div>';
+        badge.style.display = 'none';
+        return;
+      }
+
+      const unreadCount = threadList.filter(t => t.unread).length;
+      badge.textContent = unreadCount;
+      badge.style.display = unreadCount > 0 ? 'inline' : 'none';
+
+      container.innerHTML = threadList.map(thread => {
+        const isExpanded = expandedThread === thread.with;
+
+        return `
+          <div class="thread-item ${thread.unread ? 'unread' : ''} ${isExpanded ? 'expanded' : ''}"
+               data-with="${thread.with}">
+            <div class="thread-header" onclick="toggleThread('${thread.with}')">
+              <div>
+                <span class="thread-with">@${thread.with}</span>
+                <span class="thread-preview">${truncate(thread.lastMessage, 50)}</span>
+              </div>
+              <span class="thread-time">${timeAgo(thread.lastAt)}</span>
+            </div>
+            <div class="thread-content">
+              <div class="messages" id="messages-${thread.with}">
+                ${renderMessages(thread.messages)}
+              </div>
+              <form class="reply-form" onsubmit="handleReply(event, '${thread.with}')">
+                <input type="text" placeholder="Reply..." id="reply-${thread.with}" />
+                <button type="submit">Send</button>
+              </form>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Scroll expanded thread messages to bottom
+      if (expandedThread) {
+        const msgContainer = document.getElementById(`messages-${expandedThread}`);
+        if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+      }
+    }
+
+    // Truncate text
+    function truncate(text, len) {
+      if (!text) return '';
+      return text.length > len ? text.slice(0, len) + '...' : text;
+    }
+
+    // Render messages
+    function renderMessages(messages) {
+      if (!messages || !messages.length) {
+        return '<div class="empty-state" style="padding: 20px;">No messages</div>';
+      }
+
+      return messages.map(msg => `
+        <div class="message ${msg.from === myHandle ? 'sent' : 'received'}">
+          <div class="message-meta">
+            <span class="message-from">@${msg.from}</span>
+            <span class="message-time">${timeAgo(msg.createdAt)}</span>
+          </div>
+          <div class="message-text">${escapeHtml(msg.text || '')}</div>
+        </div>
+      `).join('');
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Toggle thread expansion
+    function toggleThread(withHandle) {
+      if (expandedThread === withHandle) {
+        expandedThread = null;
+      } else {
+        expandedThread = withHandle;
+      }
+      // Re-render with updated expansion state
+      renderThreadList(threads);
+    }
+
+    // Handle reply
+    async function handleReply(event, to) {
+      event.preventDefault();
+      const input = document.getElementById(`reply-${to}`);
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      input.disabled = true;
+      const btn = input.nextElementSibling;
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      const success = await sendDM(to, text);
+
+      if (success) {
+        input.value = '';
+        // Refresh inbox to get the new message
+        await fetchInbox();
+      } else {
+        input.style.borderColor = '#ff6b6b';
+        setTimeout(() => input.style.borderColor = '#333', 2000);
+      }
+
+      input.disabled = false;
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    }
+
+    // Update connection status
+    function updateConnectionStatus(connected) {
+      const dot = document.getElementById('connectionStatus');
+      dot.classList.toggle('offline', !connected);
+    }
+
+    // Update last refresh time
+    function updateRefreshTime() {
+      document.getElementById('lastRefresh').textContent =
+        `updated ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Refresh all data
+    async function refresh() {
+      await Promise.all([fetchPresence(), fetchInbox()]);
+      updateRefreshTime();
+    }
+
+    // Compose form handler
+    document.getElementById('composeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const toInput = document.getElementById('composeTo');
+      const textInput = document.getElementById('composeText');
+      const btn = e.target.querySelector('button');
+
+      const to = toInput.value.trim().replace('@', '').toLowerCase();
+      const text = textInput.value.trim();
+
+      if (!to || !text) return;
+
+      toInput.disabled = true;
+      textInput.disabled = true;
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      const success = await sendDM(to, text);
+
+      if (success) {
+        toInput.value = '';
+        textInput.value = '';
+        await fetchInbox();
+        // Expand the thread we just sent to
+        expandedThread = to;
+        renderThreadList(threads);
+      } else {
+        textInput.style.borderColor = '#ff6b6b';
+        setTimeout(() => textInput.style.borderColor = '#333', 2000);
+      }
+
+      toInput.disabled = false;
+      textInput.disabled = false;
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    });
+
+    // Initial load - register first, then refresh
+    (async () => {
+      await ensureAuth();
+      refresh();
+    })();
+
+    // Auto-refresh every 30 seconds
+    setInterval(refresh, 30000);
+  </script>
+</body>
+</html>
